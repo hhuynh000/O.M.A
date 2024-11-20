@@ -1,5 +1,16 @@
 #include "app.hpp"
 
+namespace
+{
+    constexpr const char* ARIAL_TTF = "c:\\Windows\\Fonts\\Arial.ttf";
+    constexpr float FONT_SIZE = 18.0f;
+    constexpr float ROUNDING_SIZE = 4.0f;
+    constexpr float CHILD_BORDER_SIZE = 2.0f;
+    constexpr ImVec4 WINDOW_BG_COLOR{0.9f, 0.9f, 0.9f, 1.0f};
+    constexpr double IDLE_FPS = 10.0f;
+    constexpr double WAIT_TIMEOUT_PERCENTAGE = 0.9f;
+} // app.cpp constants
+
 using namespace ui;
 
 static void glfw_error_callback(int error, const char* description)
@@ -62,7 +73,7 @@ void App::run()
     // Main loop
     while (!glfwWindowShouldClose(m_window))
     {
-        glfwPollEvents();
+        poll_events();
 
         // Initialize Dear ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -95,6 +106,8 @@ void App::run()
         if (ImGui::Begin("main", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_MenuBar))
         {
             // Main UI
+            ImGuiIO& io = ImGui::GetIO();
+            ImGui::Text("FPS: %f", io.Framerate);
         }
         ImGui::End();
 
@@ -145,4 +158,36 @@ void App::set_imgui_style()
     style.ChildBorderSize = CHILD_BORDER_SIZE;
     style.Colors[ImGuiCol_WindowBg] = WINDOW_BG_COLOR;
     style.Colors[ImGuiCol_PopupBg] = WINDOW_BG_COLOR;
+}
+
+void App::poll_events()
+{
+    static_assert(IDLE_FPS > 0.0f);
+
+    if (m_idle_state.is_idle)
+    {
+        double before_wait = m_system_clock.elapsed_second();
+        double wait_timeout = 1.0f / IDLE_FPS;
+
+        glfwWaitEventsTimeout(wait_timeout);
+
+        double after_wait = m_system_clock.elapsed_second();
+        double wait_duration = after_wait - before_wait;
+
+        m_idle_state.is_idle = wait_duration > (wait_timeout * WAIT_TIMEOUT_PERCENTAGE);
+        if (!m_idle_state.is_idle)
+        {
+            m_idle_state.idle_timer = m_system_clock.elapsed_second();
+        }
+    }
+    else
+    {
+        glfwPollEvents();
+        double current_time = m_system_clock.elapsed_second();
+        double duration = current_time - m_idle_state.idle_timer;
+        if (duration > IDLE_FPS)
+        {
+            m_idle_state.is_idle = true;
+        }
+    }
 }
