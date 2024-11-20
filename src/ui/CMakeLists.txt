@@ -1,8 +1,8 @@
-project(oma)
+project(ui)
 
-add_subdirectory(ui)
-
-add_executable(${PROJECT_NAME} main.cpp)
+add_library(${PROJECT_NAME}
+    app.cpp
+)
 
 if(CMAKE_BUILD_TYPE MATCHES "Release")
     set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
@@ -23,4 +23,5 @@ else()
     )
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ui)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC imgui)

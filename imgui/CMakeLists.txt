@@ -1,10 +1,17 @@
-project(oma)
+project(imgui)
 
-add_subdirectory(ui)
+find_package(glfw3 CONFIG REQUIRED)
 
-add_executable(${PROJECT_NAME} main.cpp)
+add_library(${PROJECT_NAME}
+    imgui.cpp
+    imgui_widgets.cpp
+    imgui_tables.cpp
+    imgui_draw.cpp
+    imgui_impl_glfw.cpp
+    imgui_impl_opengl3.cpp
+)
 
-if(CMAKE_BUILD_TYPE MATCHES "Release")
+if (CMAKE_BUILD_TYPE MATCHES "Release")
     set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
     target_compile_options(${PROJECT_NAME} PRIVATE
         /std:c++20
@@ -23,4 +30,6 @@ else()
     )
 endif()
 
-target_link_libraries(${PROJECT_NAME} PRIVATE ui)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
+target_link_libraries(${PROJECT_NAME} PRIVATE opengl32.lib gdi32.lib shell32.lib)
+target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
