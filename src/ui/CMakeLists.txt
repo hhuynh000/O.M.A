@@ -24,4 +24,4 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC imgui internal)
+target_link_libraries(${PROJECT_NAME} PUBLIC internal flow)

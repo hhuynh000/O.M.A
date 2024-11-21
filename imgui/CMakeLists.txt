@@ -9,6 +9,7 @@ add_library(${PROJECT_NAME}
     imgui_draw.cpp
     imgui_impl_glfw.cpp
     imgui_impl_opengl3.cpp
+    imnodes.cpp
 )
 
 if (CMAKE_BUILD_TYPE MATCHES "Release")

@@ -15,4 +15,4 @@ namespace internal
         using second = std::chrono::seconds;
         std::chrono::time_point<Clock> m_start;
     };
-}
+} // namespace internal

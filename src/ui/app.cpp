@@ -7,6 +7,7 @@ namespace
     constexpr float ROUNDING_SIZE = 4.0f;
     constexpr float CHILD_BORDER_SIZE = 2.0f;
     constexpr ImVec4 WINDOW_BG_COLOR{0.9f, 0.9f, 0.9f, 1.0f};
+    constexpr ImVec4 CLEAR_COLOR{0.8f, 0.82f, 0.85f, 1.0f};
     constexpr double IDLE_FPS = 10.0f;
     constexpr double WAIT_TIMEOUT_PERCENTAGE = 0.9f;
 } // app.cpp constants
@@ -22,6 +23,8 @@ App::~App()
 {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
+    flow::shutdown_node_editor(m_editor);
+    ImNodes::DestroyContext();
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
     glfwTerminate();
@@ -56,6 +59,8 @@ bool App::init(const char* title, const int width, const int height)
     // Setup Dear Imgui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImNodes::CreateContext();
+    flow::initialize_node_editor(m_editor);
 
     // Set Dear ImGui configuration and style
     set_imgui_config();
@@ -79,6 +84,8 @@ void App::run()
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        
+        flow::show_node_editor(m_editor);
 
         // Initialize dock
         ImGuiViewport* main_viewport = ImGui::GetMainViewport();
@@ -117,7 +124,7 @@ void App::run()
         int display_height = 0;
         glfwGetFramebufferSize(m_window, &display_width, &display_height);
         glViewport(0, 0, display_width, display_height);
-        glClearColor(m_clear_color.x, m_clear_color.y, m_clear_color.z, m_clear_color.w);
+        glClearColor(CLEAR_COLOR.x, CLEAR_COLOR.y, CLEAR_COLOR.z, CLEAR_COLOR.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
@@ -150,6 +157,7 @@ void App::set_imgui_config()
 void App::set_imgui_style()
 {
     ImGui::StyleColorsLight();
+    ImNodes::StyleColorsLight();
     ImGuiStyle& style = ImGui::GetStyle();
     style.WindowRounding = 0.0f;
     style.FrameRounding = ROUNDING_SIZE;
