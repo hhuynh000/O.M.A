@@ -1,122 +1,144 @@
 #include "graph.hpp"
 
-using namespace flow;
+using namespace core;
 
-void Editor::show(const char* editor_name)
+
+bool core::link_contain_node(const Link& edge, int node_id)
 {
-    ImNodes::EditorContextSet(context);
+    return edge.from == node_id || edge.to == node_id;
+}
 
-    ImGui::Begin(editor_name);
-    ImGui::TextUnformatted("A -- add node");
+const NodesMap& Graph::get_nodes_map() const
+{
+    return m_nodes;
+}
 
-    ImNodes::BeginNodeEditor();
+Node& Graph::get_node(const int node_id)
+{
+    assert(m_nodes.contains(node_id));
+    return m_nodes.at(node_id);
+}
 
-    const bool add_node = ImGuiFocusedFlags_RootAndChildWindows &&
-                            ImNodes::IsEditorHovered() &&
-                            ImGui::IsKeyReleased(ImGuiKey_A);
+const Node& Graph::get_node(const int node_id) const
+{
+    assert(m_nodes.contains(node_id));
+    return m_nodes.at(node_id);
+}
 
-    if (add_node)
-    {
-        const int node_id = ++m_current_id;
-        ImNodes::SetNodeScreenSpacePos(node_id, ImGui::GetMousePos());
-        ImNodes::SnapNodeToGrid(node_id);
-        m_nodes.push_back(Node{node_id, 0.0f});
-    }
+const std::vector<int>& Graph::get_node_links(const int node_id) const
+{
+    assert(m_node_links.contains(node_id));
+    return m_node_links.at(node_id);
+}
 
-    std::vector<int> ids_to_remove;
-    for (Node& node : m_nodes)
-    {
-        ImNodes::BeginNode(node.id);
-        
-        const bool remove_node = ImNodes::IsNodeSelected(node.id) &&  ImGui::IsKeyReleased(ImGuiKey_D);
-        if (remove_node)
+std::vector<int> Graph::get_node_in_links(const int node_id) const
+{
+    assert(m_node_links.contains(node_id));
+    std::vector<int> in_links;
+    for (const int& link_id : m_node_links.at(node_id))
+    {   
+        const Link& link = get_link(link_id);
+        if (link.from == node_id)
         {
-            ids_to_remove.push_back(node.id);
-        }
-
-        ImNodes::BeginNodeTitleBar();
-        ImGui::TextUnformatted("node");
-        ImNodes::EndNodeTitleBar();
-
-        ImNodes::BeginInputAttribute(node.id << 8);
-        ImGui::TextUnformatted("input");
-        ImNodes::EndInputAttribute();
-
-        ImNodes::BeginStaticAttribute(node.id << 16);
-        ImGui::PushItemWidth(120.0f);
-        ImGui::DragFloat("value", &node.value, 0.01f);
-        ImGui::PopItemWidth();
-        ImNodes::EndStaticAttribute();
-
-        ImNodes::BeginOutputAttribute(node.id << 24);
-        const float text_width = ImGui::CalcTextSize("value").x;
-        ImGui::Indent(120.f + ImGui::CalcTextSize("value").x - text_width);
-        ImGui::TextUnformatted("output");
-        ImNodes::EndOutputAttribute();
-
-        ImNodes::EndNode();
-    }
-
-    for (const Link& link : m_links)
-    {
-        ImNodes::Link(link.id, link.start, link.end);
-    }
-
-    for (int& id : ids_to_remove)
-    {
-        auto iter = std::remove_if(m_nodes)
-    }
-
-    ImNodes::EndNodeEditor();
-
-    {
-        Link link;
-        if (ImNodes::IsLinkCreated(&link.start, &link.end))
-        {
-            link.id = ++m_current_id;
-            m_links.push_back(link);
+            in_links.push_back(link_id);
         }
     }
 
-    {
-        int link_id = 0;
-        if (ImNodes::IsLinkDestroyed(&link_id))
+    return in_links;
+}
+
+std::vector<int> Graph::get_node_out_links(const int node_id) const
+{
+    assert(m_node_links.contains(node_id));
+    std::vector<int> out_links;
+    for (const int& link_id : m_node_links.at(node_id))
+    {   
+        const Link& link = get_link(link_id);
+        if (link.to == node_id)
         {
-            auto iter = std::find_if(
-                m_links.begin(),
-                m_links.end(),
-                [link_id](const Link& link) -> bool {
-                    return link.id == link_id;
-                }
-            );
-            assert(iter != m_links.end());
-            m_links.erase(iter);
+            out_links.push_back(link_id);
         }
     }
 
-    ImGui::End();
+    return out_links;
 }
 
-void flow::initialize_node_editor(Editor& editor)
+const Link& Graph::get_link(const int link_id) const
 {
-    editor.context = ImNodes::EditorContextCreate();
-    ImNodes::PushAttributeFlag(ImNodesAttributeFlags_EnableLinkDetachWithDragClick);
-
-    ImNodesIO& io = ImNodes::GetIO();
-    io.LinkDetachWithModifierClick.Modifier = &ImGui::GetIO().KeyCtrl;
-    io.MultipleSelectModifier.Modifier = &ImGui::GetIO().KeyCtrl;
-
-    ImNodesStyle& style = ImNodes::GetStyle();
-    style.Flags |= ImNodesStyleFlags_GridLinesPrimary | ImNodesStyleFlags_GridSnapping;
+    assert(m_links.contains(link_id));
+    return m_links.at(link_id);
 }
 
-void flow::show_node_editor(Editor& editor)
+const LinksMap& Graph::get_links_map() const
 {
-    editor.show("editor");
+    return m_links;
 }
 
-void flow::shutdown_node_editor(Editor& editor)
+size_t Graph::get_node_links_count(const int node_id) const
 {
-    ImNodes::PopAttributeFlag();
-    ImNodes::EditorContextFree(editor.context);
+    assert(m_node_links.contains(node_id));
+    return m_node_links.at(node_id).size();
+}
+
+int Graph::insert_node(const Node& node)
+{
+    const int id = m_current_id++;
+    m_nodes.insert({id, node});
+    m_node_links.insert({id, std::vector<int>()});
+    printf("Node ID %d", id);
+
+    return id;
+}
+
+void Graph::erase_node(const int node_id)
+{
+    std::vector<int> edges_to_remove;
+
+    for (const auto& [_, edge] : m_links)
+    {
+        if (link_contain_node(edge, node_id))
+        {
+            edges_to_remove.push_back(edge.id);
+        }
+    }
+
+    for (const int edge_id : edges_to_remove)
+    {
+        erase_link(edge_id);
+    }
+
+    m_nodes.erase(node_id);
+    m_node_links.erase(node_id);
+}
+
+int Graph::insert_link(const int from, const int to)
+{
+    const int id = m_current_id++;
+    assert(!m_links.contains(id));
+    assert(m_pins.contains(from));
+    assert(m_nodes.contains(to));
+    m_links.insert({id, Link{id, from, to}});
+
+    assert(m_node_links.contains(from));
+    m_node_links.at(from).push_back(to);
+    printf("Link ID: %d", id);
+
+    return id;
+}
+
+void Graph::erase_link(const int edge_id)
+{
+    assert(m_links.contains(edge_id));
+    const Link& edge = m_links.at(edge_id);
+
+    assert(m_node_links.contains(edge.from));
+    const size_t edge_count = m_node_links.at(edge.from).size();
+    assert(edge_count > 0);
+
+    std::vector<int> neighbor = m_node_links.at(edge.from);
+    auto iter = std::find(neighbor.begin(), neighbor.end(), edge.to);
+    assert(iter != neighbor.end());
+    neighbor.erase(iter);
+    
+    m_links.erase(edge_id);
 }

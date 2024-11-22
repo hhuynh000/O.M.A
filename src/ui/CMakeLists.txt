@@ -2,6 +2,7 @@ project(ui)
 
 add_library(${PROJECT_NAME}
     app.cpp
+    editor.cpp
 )
 
 if(CMAKE_BUILD_TYPE MATCHES "Release")
@@ -24,4 +25,4 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC internal flow)
+target_link_libraries(${PROJECT_NAME} PUBLIC imgui internal core)

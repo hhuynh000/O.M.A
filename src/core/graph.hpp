@@ -1,39 +1,88 @@
 #pragma once
 
 #include <vector>
+#include <map>
+#include <span>
+#include <ranges>
+#include <cassert>
 
-#include <imgui.h>
-#include <imnodes.h>
-
-namespace flow
+namespace core
 {
+
+    enum class GraphError
+    {
+        InvalidNode
+    };
+
+    typedef std::vector<int> NodePins;
+
     struct Node
     {
-        int id {0};
         float value {0.0f};
+        NodePins input_pins;
+        NodePins output_pins;
     };
+
+    typedef std::map<int, Node> NodesMap;
 
     struct Link
     {
         int id {0};
-        int start {0};
-        int end {0};
+        int from {0};
+        int to {0};
+    };
+    
+    typedef std::map<int, Link> LinksMap;
+
+    enum class PinType
+    {
+        None,
+        Input,
+        Output
+    };
+    
+    struct Pin
+    {
+        int id {0};
+        PinType type {PinType::None};
     };
 
-    class Editor
+    typedef std::map<int, int> PinsMap; 
+
+    bool link_contain_node(const Link& link, int node_id);
+
+
+    class Graph
     {
     public:
-        Editor() = default;
-        void show(const char* editor_name);
-        ImNodesEditorContext* context {nullptr};
-    
-    private:
-        std::vector<Node> m_nodes;
-        std::vector<Link> m_links;
-        int m_current_id {0};
-    };
+        Graph() = default;
+        
+        const NodesMap& get_nodes_map() const;
 
-    void initialize_node_editor(Editor& editor);
-    void show_node_editor(Editor& editor);
-    void shutdown_node_editor(Editor& editor);
+        Node& get_node(int node_id);
+        const Node& get_node(int node_id) const;
+
+        const std::vector<int>& get_node_links(int node_id) const;
+        size_t get_node_links_count(int node_id) const;
+        std::vector<int> get_node_in_links(int node_id) const;
+        std::vector<int> get_node_out_links(int node_id) const;
+        
+        const Link& get_link(int link_id) const;
+
+        const LinksMap& get_links_map() const;
+
+        int insert_node(const Node& node);
+        void erase_node(int node_id);
+
+        int insert_link(int from, int to);
+        void erase_link(int link_id);
+
+    private:
+        int m_current_id {1};
+        NodesMap m_nodes;
+        LinksMap m_links;
+        PinsMap m_pins;
+
+        std::map<int, std::vector<int>> m_node_links;
+    };
 }

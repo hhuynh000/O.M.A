@@ -9,7 +9,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "system_clock.hpp"
-#include "graph.hpp"
+#include "Editor.hpp"
 
 namespace ui
 {
@@ -31,7 +31,7 @@ namespace ui
         GLFWwindow* m_window = nullptr;
         IdleState m_idle_state;
         internal::SystemClock m_system_clock;
-        flow::Editor m_editor;
+        Editor m_editor;
         bool m_init_dock = true;
 
         void set_imgui_config();

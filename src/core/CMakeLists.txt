@@ -1,4 +1,4 @@
-project(flow)
+project(core)
 
 add_library(${PROJECT_NAME}
     graph.cpp

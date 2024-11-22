@@ -23,7 +23,6 @@ App::~App()
 {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    flow::shutdown_node_editor(m_editor);
     ImNodes::DestroyContext();
     ImGui::DestroyContext();
     glfwDestroyWindow(m_window);
@@ -60,7 +59,6 @@ bool App::init(const char* title, const int width, const int height)
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImNodes::CreateContext();
-    flow::initialize_node_editor(m_editor);
 
     // Set Dear ImGui configuration and style
     set_imgui_config();
@@ -85,7 +83,7 @@ void App::run()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         
-        flow::show_node_editor(m_editor);
+        m_editor.show();
 
         // Initialize dock
         ImGuiViewport* main_viewport = ImGui::GetMainViewport();
