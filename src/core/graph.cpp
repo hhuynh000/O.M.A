@@ -3,112 +3,110 @@
 using namespace core;
 
 
-bool core::link_contain_node(const Link& edge, int node_id)
+bool core::link_contain_node(const Link& link, int node_id)
 {
-    return edge.from == node_id || edge.to == node_id;
+    return link.from == node_id || link.to == node_id;
 }
 
-const NodesMap& Graph::get_nodes_map() const
+std::span<const Node> Graph::nodes() const
 {
-    return m_nodes;
+    return m_nodes.elements();
 }
 
-Node& Graph::get_node(const int node_id)
+std::span<const int> Graph::uids() const
+{
+    return m_nodes.uids();
+}
+
+UidMap<Node>::iterator Graph::get_node(const int node_id)
 {
     assert(m_nodes.contains(node_id));
     return m_nodes.at(node_id);
 }
 
-const Node& Graph::get_node(const int node_id) const
+UidMap<Node>::const_iterator Graph::get_node(const int node_id) const
 {
     assert(m_nodes.contains(node_id));
     return m_nodes.at(node_id);
 }
 
-const std::vector<int>& Graph::get_node_links(const int node_id) const
+const Links& Graph::get_node_links(const int node_id) const
 {
-    assert(m_node_links.contains(node_id));
-    return m_node_links.at(node_id);
+    assert(m_nodes.contains(node_id));
+    return m_nodes.at(node_id)->links;
 }
 
-std::vector<int> Graph::get_node_in_links(const int node_id) const
+const Pins& Graph::get_node_pins(const int node_id) const
 {
-    assert(m_node_links.contains(node_id));
-    std::vector<int> in_links;
-    for (const int& link_id : m_node_links.at(node_id))
-    {   
-        const Link& link = get_link(link_id);
-        if (link.from == node_id)
-        {
-            in_links.push_back(link_id);
-        }
-    }
-
-    return in_links;
+    assert(m_nodes.contains(node_id));
+    UidMap<Node>::const_iterator node = m_nodes.at(node_id);
+    return node->pins;
 }
 
-std::vector<int> Graph::get_node_out_links(const int node_id) const
-{
-    assert(m_node_links.contains(node_id));
-    std::vector<int> out_links;
-    for (const int& link_id : m_node_links.at(node_id))
-    {   
-        const Link& link = get_link(link_id);
-        if (link.to == node_id)
-        {
-            out_links.push_back(link_id);
-        }
-    }
-
-    return out_links;
-}
-
-const Link& Graph::get_link(const int link_id) const
+UidMap<Link>::const_iterator Graph::get_link(const int link_id) const
 {
     assert(m_links.contains(link_id));
     return m_links.at(link_id);
 }
 
-const LinksMap& Graph::get_links_map() const
+UidMap<Pin>::const_iterator Graph::get_pin(const int pin_id) const
 {
-    return m_links;
+    assert(m_pins.contains(pin_id));
+    return m_pins.at(pin_id);
+}
+
+std::span<const Link> Graph::links() const
+{
+    return m_links.elements();
 }
 
 size_t Graph::get_node_links_count(const int node_id) const
 {
-    assert(m_node_links.contains(node_id));
-    return m_node_links.at(node_id).size();
+    assert(m_nodes.contains(node_id));
+    return m_nodes.at(node_id)->links.size();
 }
 
-int Graph::insert_node(const Node& node)
+int Graph::insert_node(Node& node)
 {
-    const int id = m_current_id++;
-    m_nodes.insert({id, node});
-    m_node_links.insert({id, std::vector<int>()});
-    printf("Node ID %d", id);
+    const int node_uid = m_current_id++;
+    assert(!m_nodes.contains(node_uid));
+    m_nodes.insert(node_uid, Node{0.0});
 
-    return id;
+    int pin_uid = m_current_id++;
+    m_nodes.at(node_uid)->pins.push_back(pin_uid);
+    m_pins.insert(pin_uid, Pin{pin_uid, PinType::Input});
+    m_pin_to_node.insert(pin_uid, node_uid);
+    printf("IUD: %d\n", pin_uid);
+    node.pins.push_back(pin_uid);
+
+    pin_uid = m_current_id++;
+    m_nodes.at(node_uid)->pins.push_back(pin_uid);
+    m_pins.insert(pin_uid, Pin{pin_uid, PinType::Output});
+    m_pin_to_node.insert(pin_uid, node_uid);
+    printf("IUD: %d\n", pin_uid);
+    node.pins.push_back(pin_uid);
+
+    return node_uid;
 }
 
 void Graph::erase_node(const int node_id)
 {
-    std::vector<int> edges_to_remove;
+    std::vector<int> links_to_remove;
 
-    for (const auto& [_, edge] : m_links)
+    for (const Link& link : m_links.elements())
     {
-        if (link_contain_node(edge, node_id))
+        if (link_contain_node(link, node_id))
         {
-            edges_to_remove.push_back(edge.id);
+            links_to_remove.push_back(link.id);
         }
     }
 
-    for (const int edge_id : edges_to_remove)
+    for (const int link_id : links_to_remove)
     {
-        erase_link(edge_id);
+        erase_link(link_id);
     }
 
     m_nodes.erase(node_id);
-    m_node_links.erase(node_id);
 }
 
 int Graph::insert_link(const int from, const int to)
@@ -116,29 +114,31 @@ int Graph::insert_link(const int from, const int to)
     const int id = m_current_id++;
     assert(!m_links.contains(id));
     assert(m_pins.contains(from));
-    assert(m_nodes.contains(to));
-    m_links.insert({id, Link{id, from, to}});
+    assert(m_pins.contains(to));
+    m_links.insert(id, Link{id, from, to});
 
-    assert(m_node_links.contains(from));
-    m_node_links.at(from).push_back(to);
-    printf("Link ID: %d", id);
+    UidMap<int>::const_iterator node_uid = m_pin_to_node.at(from);
+    assert(m_nodes.contains(*node_uid));
+
+    printf("Node Uid: %d\n", *node_uid);
+    m_nodes.at(*node_uid)->links.push_back(to);
 
     return id;
 }
 
-void Graph::erase_link(const int edge_id)
+void Graph::erase_link(const int link_id)
 {
-    assert(m_links.contains(edge_id));
-    const Link& edge = m_links.at(edge_id);
+    assert(m_links.contains(link_id));
+    UidMap<Link>::const_iterator link = m_links.at(link_id);
 
-    assert(m_node_links.contains(edge.from));
-    const size_t edge_count = m_node_links.at(edge.from).size();
-    assert(edge_count > 0);
+    assert(m_nodes.contains(link->from));
+    const size_t link_count = m_nodes.at(link->from)->links.size();
+    assert(link_count > 0);
 
-    std::vector<int> neighbor = m_node_links.at(edge.from);
-    auto iter = std::find(neighbor.begin(), neighbor.end(), edge.to);
+    std::vector<int>& neighbor = m_nodes.at(link->from)->links;
+    auto iter = std::find(neighbor.begin(), neighbor.end(), link->to);
     assert(iter != neighbor.end());
     neighbor.erase(iter);
     
-    m_links.erase(edge_id);
+    m_links.erase(link_id);
 }

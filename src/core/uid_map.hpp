@@ -18,7 +18,7 @@ namespace core
 
         // Element access
         std::span<const T> elements() const { return std::span<const T>(m_elements); }; 
-        std::span<const int> uids() const { return std::span<int>(m_uids); }; 
+        std::span<const int> uids() const { return std::span<const int>(m_uids); }; 
 
         // Capacity 
         bool empty() const { return m_uids.empty(); }
@@ -36,6 +36,9 @@ namespace core
         bool contains(int uid) const;
 
     private:
+        using uid_iterator = std::vector<int>::iterator;
+        using const_uid_iterator = std::vector<int>::const_iterator;
+
         std::vector<T> m_elements;
         std::vector<int> m_uids;
     };
@@ -43,7 +46,7 @@ namespace core
     template<typename T>
     void UidMap<T>::insert(const int uid, const T& element)
     {
-        iterator lower_bound = std::lower_bound(m_uids.begin(), m_uids.end(), uid);
+        uid_iterator lower_bound = std::lower_bound(m_uids.begin(), m_uids.end(), uid);
         if (lower_bound != m_uids.end())
         {
             return;
@@ -59,14 +62,14 @@ namespace core
     template<typename T>
     void UidMap<T>::insert(const int uid, T&& element)
     {
-        iterator lower_bound = std::lower_bound(m_uids.begin(), m_uids.end(), uid);
-        if (lower_bound != m_uids.end())
+        const_uid_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
+        if (lower_bound != m_uids.cend())
         {
             return;
         }
 
         iterator insert_element_position =
-            std::next(m_elements.begin(), std::distance(m_uids.begin(), lower_bound));
+            std::next(m_elements.begin(), std::distance(m_uids.cbegin(), lower_bound));
 
         m_uids.insert(lower_bound, uid);
         m_elements.insert(insert_element_position, element);
@@ -75,14 +78,14 @@ namespace core
     template<typename T>
     void UidMap<T>::erase(int uid)
     {
-        iterator lower_bound = std::lower_bound(m_uids.begin(), m_uids.end());
-        if (lower_bound == m_uids.end())
+        const_uid_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
+        if (lower_bound == m_uids.cend())
         {
             return;
         }
 
         iterator erase_element_position = 
-            std::next(m_elements.begin(), std::distance(m_uids.begin(), lower_bound));
+            std::next(m_elements.begin(), std::distance(m_uids.cbegin(), lower_bound));
         
         m_uids.erase(lower_bound);
         m_elements.erase(erase_element_position);
@@ -98,7 +101,7 @@ namespace core
     template<typename T>
     typename UidMap<T>::iterator UidMap<T>::at(const int uid)
     {
-        const_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
+        const_uid_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
         if (lower_bound == m_uids.cend())
         {
             return m_elements.end();
@@ -110,7 +113,7 @@ namespace core
     template<typename T>
     typename UidMap<T>::const_iterator UidMap<T>::at(const int uid) const
     {
-        const_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
+        const_uid_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
         if (lower_bound == m_uids.cend())
         {
             return m_elements.cend();
@@ -122,7 +125,7 @@ namespace core
     template<typename T>
     bool UidMap<T>::contains(const int uid) const
     {
-        const_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
+        const_uid_iterator lower_bound = std::lower_bound(m_uids.cbegin(), m_uids.cend(), uid);
         if (lower_bound == m_uids.cend())
         {
             return false;

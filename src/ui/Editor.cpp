@@ -38,33 +38,44 @@ void Editor::show()
         
         if (add_node)
         {
-            const core::Node node{0.0f};
+            core::Node node{0.0f};
             const int node_id = m_graph.insert_node(node);
             ImNodes::SetNodeScreenSpacePos(node_id, ImGui::GetMousePos());
         }
 
-        for (const auto& [id, node] : m_graph.get_nodes_map())
+        for (int node_uid : m_graph.uids())
         {
-            ImNodes::BeginNode(id);
-
+            ImNodes::BeginNode(node_uid);
+            
             ImNodes::BeginNodeTitleBar();
-            ImGui::Text("ID: %d", id);
+            ImGui::Text("ID: %d", node_uid);
             ImNodes::EndNodeTitleBar();
 
-            ImNodes::BeginInputAttribute(id);
-            ImGui::TextUnformatted("Input");
-            ImNodes::EndInputAttribute();
+            core::UidMap<core::Node>::iterator node = m_graph.get_node(node_uid);
 
-            ImNodes::BeginOutputAttribute(id);
-            ImGui::TextUnformatted("Output");
-            ImNodes::EndOutputAttribute();
+            for (int pin_uid : node->pins)
+            {
+                core::UidMap<core::Pin>::const_iterator pin = m_graph.get_pin(pin_uid);
+                if (pin->type == core::PinType::Input)
+                {
+                    ImNodes::BeginInputAttribute(pin_uid);
+                    ImGui::TextUnformatted("Input");
+                    ImNodes::EndInputAttribute();
+                }
+                else
+                {
+                    ImNodes::BeginOutputAttribute(pin_uid);
+                    ImGui::TextUnformatted("Output");
+                    ImNodes::EndOutputAttribute();
+                }
+            }
 
             ImNodes::EndNode();
         }
 
-        for (const auto& [id, edge] : m_graph.get_links_map())
+        for (const core::Link& link : m_graph.links())
         {
-            ImNodes::Link(edge.id, edge.from, edge.to);
+            ImNodes::Link(link.id, link.from, link.to);
         }
 
         ImNodes::EndNodeEditor();
