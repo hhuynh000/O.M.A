@@ -88,10 +88,40 @@ void Editor::show()
             m_graph.insert_link(from, to);
         }
 
-        int link_id = 0;
-        if (ImNodes::IsLinkDestroyed(&link_id))
         {
-            m_graph.erase_link(link_id);
+            int link_id = 0;
+            if (ImNodes::IsLinkDestroyed(&link_id))
+            {
+                m_graph.erase_link(link_id);
+            }
+        }
+
+        {
+            const int num_selected = ImNodes::NumSelectedLinks();
+            if (num_selected > 0 && ImGui::IsKeyReleased(ImGuiKey_X))
+            {
+                std::vector<int> selected_links;
+                selected_links.resize(static_cast<size_t>(num_selected));
+                ImNodes::GetSelectedLinks(selected_links.data());
+                for (const int link_id : selected_links)
+                {
+                    m_graph.erase_link(link_id);
+                }
+            }
+        }
+
+        {
+            const int num_selected = ImNodes::NumSelectedNodes();
+            if (num_selected > 0 && ImGui::IsKeyReleased(ImGuiKey_X))
+            {
+                std::vector<int> selected_nodes;
+                selected_nodes.resize(static_cast<int>(num_selected));
+                ImNodes::GetSelectedNodes(selected_nodes.data());
+                for (const int node_id : selected_nodes)
+                {
+                    m_graph.erase_node(node_id);
+                }
+            }
         }
 
     }

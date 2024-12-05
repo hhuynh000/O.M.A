@@ -131,11 +131,12 @@ void Graph::erase_link(const int link_id)
     assert(m_links.contains(link_id));
     UidMap<Link>::const_iterator link = m_links.at(link_id);
 
-    assert(m_nodes.contains(link->from));
-    const size_t link_count = m_nodes.at(link->from)->links.size();
+    UidMap<int>::const_iterator from_node = m_pin_to_node.at(link->from);
+    assert(m_nodes.contains(*from_node));
+    const size_t link_count = m_nodes.at(*from_node)->links.size();
     assert(link_count > 0);
 
-    std::vector<int>& neighbor = m_nodes.at(link->from)->links;
+    std::vector<int>& neighbor = m_nodes.at(*from_node)->links;
     auto iter = std::find(neighbor.begin(), neighbor.end(), link->to);
     assert(iter != neighbor.end());
     neighbor.erase(iter);
